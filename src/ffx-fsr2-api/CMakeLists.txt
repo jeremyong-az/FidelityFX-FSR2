@@ -37,13 +37,9 @@ if(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
     set(FSR2_VS_VERSION 2019)
 endif()
 
-if(CMAKE_GENERATOR_PLATFORM STREQUAL "x64" OR CMAKE_EXE_LINKER_FLAGS STREQUAL "/machine:x64")
-    set(FSR2_PLATFORM_NAME x64)
-elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32" OR CMAKE_EXE_LINKER_FLAGS STREQUAL "/machine:X86")
-    set(FSR2_PLATFORM_NAME x86)
-else()
-    message(FATAL_ERROR "Unsupported target platform - only supporting x64 and Win32 currently")
-endif()
+# This was changed from the original cmake file which checked a hardcoded linker flags string
+# to detect the architecture
+set(FSR2_PLATFORM_NAME x64)
 
 # Embed PDBs in the debug versions of the libs
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
