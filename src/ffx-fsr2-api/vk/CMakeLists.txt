@@ -47,15 +47,11 @@ file(GLOB_RECURSE VK
 
 if (FSR2_BUILD_AS_DLL)
     add_library(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} SHARED ${VK})
-    target_link_libraries(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} LINK_PUBLIC Vulkan::Vulkan)
 else()
     add_library(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} STATIC ${VK})
 endif()
 
-find_package(Vulkan REQUIRED)
-
 target_include_directories(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/../shaders/vk)
-target_include_directories(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../shaders/vk)
 
