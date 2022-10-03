@@ -517,7 +517,7 @@ FfxCommandList ffxGetCommandListVK(VkCommandBuffer cmdBuf)
     return reinterpret_cast<FfxCommandList>(cmdBuf);
 }
 
-FfxResource ffxGetTextureResourceVK(FfxFsr2Context* context, VkImage imgVk, VkImageView imageView, uint32_t width, uint32_t height, VkFormat imgFormat, wchar_t* name, FfxResourceStates state)
+FfxResource ffxGetTextureResourceVK(FfxFsr2Context* context, VkImage imgVk, VkImageView imageView, uint32_t width, uint32_t height, VkFormat imgFormat, const wchar_t* name, FfxResourceStates state)
 {
     FfxResource resource = {};
     resource.resource = reinterpret_cast<void*>(imgVk);

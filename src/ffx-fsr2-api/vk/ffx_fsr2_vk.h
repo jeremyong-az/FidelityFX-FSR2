@@ -99,7 +99,7 @@ extern "C" {
         uint32_t width, 
         uint32_t height, 
         VkFormat imgFormat, 
-        wchar_t* name = nullptr, 
+        const wchar_t* name = nullptr, 
         FfxResourceStates state = FFX_RESOURCE_STATE_COMPUTE_READ);
 
     /// Create a <c><i>FfxResource</i></c> from a <c><i>VkBuffer</i></c>.
