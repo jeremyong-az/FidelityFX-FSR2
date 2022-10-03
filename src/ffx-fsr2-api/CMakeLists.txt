@@ -48,8 +48,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   ${CMAKE_HOME_DIRECTORY}/bin/ffx_fsr2_api/)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_HOME_DIRECTORY}/bin/ffx_fsr2_api/)
 
-add_compile_definitions(_UNICODE)
-add_compile_definitions(UNICODE)
 #add_compile_definitions(FSR2_VERSION_MAJOR=0)
 #add_compile_definitions(FSR2_VERSION_MINOR=1)
 #add_compile_definitions(FSR2_VERSION_PATCH=0)
