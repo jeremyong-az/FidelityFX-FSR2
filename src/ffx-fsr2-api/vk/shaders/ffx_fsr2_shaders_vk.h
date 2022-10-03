@@ -27,6 +27,8 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif // #if defined(__cplusplus)
+#pragma warning(push)
+#pragma warning(disable:4190)
 
     // A single shader blob and a description of its resources.
     typedef struct Fsr2ShaderBlobVK {
@@ -58,8 +60,9 @@ extern "C" {
     } Fs2ShaderPermutationOptionsVK;
 
     // Get a VK shader blob for the specified pass and permutation index.
-    Fsr2ShaderBlobVK fsr2GetPermutationBlobByIndex(FfxFsr2Pass passId, uint32_t permutationOptions);
+    Fsr2ShaderBlobVK fsr2GetPermutationBlobByIndexVK(FfxFsr2Pass passId, uint32_t permutationOptions);
 
+#pragma warning(pop)
 #if defined(__cplusplus)
 }
 #endif // #if defined(__cplusplus)

@@ -91,6 +91,12 @@ typedef struct BackendContext_VK {
 
     typedef struct VKFunctionTable
     {
+        PFN_vkEnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties = 0;
+        PFN_vkGetPhysicalDeviceMemoryProperties  vkGetPhysicalDeviceMemoryProperties = 0;
+        PFN_vkGetPhysicalDeviceProperties        vkGetPhysicalDeviceProperties = 0;
+        PFN_vkGetPhysicalDeviceProperties2       vkGetPhysicalDeviceProperties2 = 0;
+        PFN_vkGetPhysicalDeviceFeatures2         vkGetPhysicalDeviceFeatures2 = 0;
+
         PFN_vkGetDeviceProcAddr             vkGetDeviceProcAddr = 0;
         PFN_vkSetDebugUtilsObjectNameEXT    vkSetDebugUtilsObjectNameEXT = 0;
         PFN_vkCreateDescriptorPool          vkCreateDescriptorPool = 0;
@@ -170,12 +176,12 @@ typedef struct BackendContext_VK {
 
 } BackendContext_VK;
 
-FFX_API size_t ffxFsr2GetScratchMemorySizeVK(VkPhysicalDevice physicalDevice)
+FFX_API size_t ffxFsr2GetScratchMemorySizeVK(VkPhysicalDevice physicalDevice, PFN_vkEnumerateDeviceExtensionProperties enumerateDeviceExtensionProperties)
 {
     uint32_t numExtensions = 0;
     
     if (physicalDevice)
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &numExtensions, nullptr);
+        enumerateDeviceExtensionProperties(physicalDevice, nullptr, &numExtensions, nullptr);
 
     return FFX_ALIGN_UP(sizeof(BackendContext_VK) + sizeof(VkExtensionProperties) * numExtensions, sizeof(uint64_t));
 }
@@ -185,7 +191,12 @@ FfxErrorCode ffxFsr2GetInterfaceVK(
     void* scratchBuffer,
     size_t scratchBufferSize,
     VkPhysicalDevice physicalDevice,
-    PFN_vkGetDeviceProcAddr getDeviceProcAddr)
+    PFN_vkGetDeviceProcAddr getDeviceProcAddr,
+    PFN_vkEnumerateDeviceExtensionProperties enumerateDeviceExtensionProperties,
+    PFN_vkGetPhysicalDeviceMemoryProperties getPhysicalDeviceMemoryProperties,
+    PFN_vkGetPhysicalDeviceProperties getPhysicalDeviceProperties,
+    PFN_vkGetPhysicalDeviceProperties2 getPhysicalDeviceProperties2,
+    PFN_vkGetPhysicalDeviceFeatures2 getPhysicalDeviceFeatures2)
 {
     FFX_RETURN_ON_ERROR(
         outInterface,
@@ -194,7 +205,7 @@ FfxErrorCode ffxFsr2GetInterfaceVK(
         scratchBuffer,
         FFX_ERROR_INVALID_POINTER);
     FFX_RETURN_ON_ERROR(
-        scratchBufferSize >= ffxFsr2GetScratchMemorySizeVK(physicalDevice),
+        scratchBufferSize >= ffxFsr2GetScratchMemorySizeVK(physicalDevice, enumerateDeviceExtensionProperties),
         FFX_ERROR_INSUFFICIENT_MEMORY);
 
     outInterface->fpGetDeviceCapabilities = GetDeviceCapabilitiesVK;
@@ -216,6 +227,11 @@ FfxErrorCode ffxFsr2GetInterfaceVK(
 
     context->physicalDevice = physicalDevice;
     context->vkFunctionTable.vkGetDeviceProcAddr = getDeviceProcAddr;
+    context->vkFunctionTable.vkEnumerateDeviceExtensionProperties = enumerateDeviceExtensionProperties;
+    context->vkFunctionTable.vkGetPhysicalDeviceMemoryProperties = getPhysicalDeviceMemoryProperties;
+    context->vkFunctionTable.vkGetPhysicalDeviceProperties = getPhysicalDeviceProperties;
+    context->vkFunctionTable.vkGetPhysicalDeviceProperties2 = getPhysicalDeviceProperties2;
+    context->vkFunctionTable.vkGetPhysicalDeviceFeatures2 = getPhysicalDeviceFeatures2;
 
     return FFX_OK;
 }
@@ -341,7 +357,7 @@ VkImageType getVKImageTypeFromResourceType(FfxResourceType type)
     case(FFX_RESOURCE_TYPE_TEXTURE3D):
         return VK_IMAGE_TYPE_3D;
     default:
-        return VK_IMAGE_TYPE_MAX_ENUM;
+        return VK_IMAGE_TYPE_2D;
     }
 }
 
@@ -436,12 +452,12 @@ FfxSurfaceFormat ffxGetSurfaceFormatVK(VkFormat fmt)
     }
 }
 
-uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, VkMemoryRequirements memRequirements, VkMemoryPropertyFlags requestedProperties, VkMemoryPropertyFlags& outProperties)
+uint32_t findMemoryTypeIndex(PFN_vkGetPhysicalDeviceMemoryProperties getPhysicalDeviceMemoryProperties, VkPhysicalDevice physicalDevice, VkMemoryRequirements memRequirements, VkMemoryPropertyFlags requestedProperties, VkMemoryPropertyFlags& outProperties)
 {
     FFX_ASSERT(NULL != physicalDevice);
 
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+    getPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
     uint32_t bestCandidate = UINT32_MAX;
 
@@ -714,7 +730,7 @@ FfxErrorCode GetDeviceCapabilitiesVK(FfxFsr2Interface* backendInterface, FfxDevi
             VkPhysicalDeviceProperties2 deviceProperties2 = {};
             deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
             deviceProperties2.pNext = &subgroupSizeControlProperties;
-            vkGetPhysicalDeviceProperties2(context->physicalDevice, &deviceProperties2);
+            context->vkFunctionTable.vkGetPhysicalDeviceProperties2(context->physicalDevice, &deviceProperties2);
 
             deviceCapabilities->waveLaneCountMin = subgroupSizeControlProperties.minSubgroupSize;
             deviceCapabilities->waveLaneCountMax = subgroupSizeControlProperties.maxSubgroupSize;
@@ -729,7 +745,7 @@ FfxErrorCode GetDeviceCapabilitiesVK(FfxFsr2Interface* backendInterface, FfxDevi
             physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
             physicalDeviceFeatures2.pNext = &shaderFloat18Int8Features;
 
-            vkGetPhysicalDeviceFeatures2(context->physicalDevice, &physicalDeviceFeatures2);
+            context->vkFunctionTable.vkGetPhysicalDeviceFeatures2(context->physicalDevice, &physicalDeviceFeatures2);
 
             deviceCapabilities->fp16Supported = (bool)shaderFloat18Int8Features.shaderFloat16;
         }
@@ -743,7 +759,7 @@ FfxErrorCode GetDeviceCapabilitiesVK(FfxFsr2Interface* backendInterface, FfxDevi
             physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
             physicalDeviceFeatures2.pNext = &accelerationStructureFeatures;
 
-            vkGetPhysicalDeviceFeatures2(context->physicalDevice, &physicalDeviceFeatures2);
+            context->vkFunctionTable.vkGetPhysicalDeviceFeatures2(context->physicalDevice, &physicalDeviceFeatures2);
 
             deviceCapabilities->raytracingSupported = (bool)accelerationStructureFeatures.accelerationStructure;
         }
@@ -765,10 +781,6 @@ FfxErrorCode CreateBackendContextVK(FfxFsr2Interface* backendInterface, FfxDevic
     // make sure the extra parameters were already passed in
     FFX_ASSERT(backendContext->physicalDevice != NULL);
 
-    // if vkGetDeviceProcAddr is NULL, use the one from the vulkan header
-    if (backendContext->vkFunctionTable.vkGetDeviceProcAddr == NULL)
-        backendContext->vkFunctionTable.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
-
     if (vkDevice != NULL) {
         backendContext->device = vkDevice;
     }
@@ -781,8 +793,8 @@ FfxErrorCode CreateBackendContextVK(FfxFsr2Interface* backendInterface, FfxDevic
 
     // enumerate all the device extensions 
     backendContext->numDeviceExtensions = 0;
-    vkEnumerateDeviceExtensionProperties(backendContext->physicalDevice, nullptr, &backendContext->numDeviceExtensions, nullptr);
-    vkEnumerateDeviceExtensionProperties(backendContext->physicalDevice, nullptr, &backendContext->numDeviceExtensions, backendContext->extensionProperties);
+    backendContext->vkFunctionTable.vkEnumerateDeviceExtensionProperties(backendContext->physicalDevice, nullptr, &backendContext->numDeviceExtensions, nullptr);
+    backendContext->vkFunctionTable.vkEnumerateDeviceExtensionProperties(backendContext->physicalDevice, nullptr, &backendContext->numDeviceExtensions, backendContext->extensionProperties);
 
     // create descriptor pool
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
@@ -882,11 +894,11 @@ FfxErrorCode CreateBackendContextVK(FfxFsr2Interface* backendInterface, FfxDevic
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = FSR2_UBO_MEMORY_BLOCK_SIZE;
-        allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->physicalDevice, memRequirements, requiredMemoryProperties, backendContext->uboMemoryProperties);
+        allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->vkFunctionTable.vkGetPhysicalDeviceMemoryProperties, backendContext->physicalDevice, memRequirements, requiredMemoryProperties, backendContext->uboMemoryProperties);
 
         if (allocInfo.memoryTypeIndex == UINT32_MAX) {
             requiredMemoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->physicalDevice, memRequirements, requiredMemoryProperties, backendContext->uboMemoryProperties);
+            allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->vkFunctionTable.vkGetPhysicalDeviceMemoryProperties, backendContext->physicalDevice, memRequirements, requiredMemoryProperties, backendContext->uboMemoryProperties);
 
             if (allocInfo.memoryTypeIndex == UINT32_MAX) {
                 return FFX_ERROR_BACKEND_API_ERROR;
@@ -1082,7 +1094,7 @@ FfxErrorCode CreateResourceVK(
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->physicalDevice, memRequirements, requiredMemoryProperties, res->memoryProperties);
+    allocInfo.memoryTypeIndex = findMemoryTypeIndex(backendContext->vkFunctionTable.vkGetPhysicalDeviceMemoryProperties, backendContext->physicalDevice, memRequirements, requiredMemoryProperties, res->memoryProperties);
 
     if (allocInfo.memoryTypeIndex == UINT32_MAX) {
         return FFX_ERROR_BACKEND_API_ERROR;
@@ -1265,7 +1277,7 @@ FfxErrorCode CreatePipelineVK(FfxFsr2Interface* backendInterface, FfxFsr2Pass pa
     if (pass == FFX_FSR2_PASS_ACCUMULATE || pass == FFX_FSR2_PASS_ACCUMULATE_SHARPEN)
     {
         VkPhysicalDeviceProperties physicalDeviceProperties = {};
-        vkGetPhysicalDeviceProperties(backendContext->physicalDevice, &physicalDeviceProperties);
+        backendContext->vkFunctionTable.vkGetPhysicalDeviceProperties(backendContext->physicalDevice, &physicalDeviceProperties);
 
         // Workaround: Disable FP16 path for the accumulate pass on NVIDIA due to reduced occupancy and high VRAM throughput.
         if (physicalDeviceProperties.vendorID == 0x10DE)
@@ -1283,7 +1295,7 @@ FfxErrorCode CreatePipelineVK(FfxFsr2Interface* backendInterface, FfxFsr2Pass pa
     flags |= (canForceWave64) ? FSR2_SHADER_PERMUTATION_FORCE_WAVE64 : 0;
     flags |= (supportedFP16 && (pass != FFX_FSR2_PASS_RCAS)) ? FSR2_SHADER_PERMUTATION_ALLOW_FP16 : 0;
 
-    const Fsr2ShaderBlobVK shaderBlob = fsr2GetPermutationBlobByIndex(pass, flags);
+    const Fsr2ShaderBlobVK shaderBlob = fsr2GetPermutationBlobByIndexVK(pass, flags);
     FFX_ASSERT(shaderBlob.data && shaderBlob.size);
 
     // populate the pass.

@@ -34,7 +34,7 @@ extern "C" {
     ///
     /// @returns
     /// The size (in bytes) of the required scratch memory buffer for the VK backend.
-    FFX_API size_t ffxFsr2GetScratchMemorySizeVK(VkPhysicalDevice physicalDevice);
+    FFX_API size_t ffxFsr2GetScratchMemorySizeVK(VkPhysicalDevice physicalDevice, PFN_vkEnumerateDeviceExtensionProperties enumerateDeviceExtensionProperties);
 
     /// Populate an interface with pointers for the VK backend.
     ///
@@ -56,7 +56,12 @@ extern "C" {
         void* scratchBuffer,
         size_t scratchBufferSize,
         VkPhysicalDevice physicalDevice,
-        PFN_vkGetDeviceProcAddr getDeviceProcAddr);
+        PFN_vkGetDeviceProcAddr getDeviceProcAddr,
+        PFN_vkEnumerateDeviceExtensionProperties enumerateDeviceExtensionProperties,
+        PFN_vkGetPhysicalDeviceMemoryProperties getPhysicalDeviceMemoryProperties,
+        PFN_vkGetPhysicalDeviceProperties getPhysicalDeviceProperties,
+        PFN_vkGetPhysicalDeviceProperties2 getPhysicalDeviceProperties2,
+        PFN_vkGetPhysicalDeviceFeatures2 getPhysicalDeviceFeatures2);
 
     /// Create a <c><i>FfxFsr2Device</i></c> from a <c><i>VkDevice</i></c>.
     ///

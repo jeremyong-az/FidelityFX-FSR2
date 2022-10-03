@@ -27,6 +27,8 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif // #if defined(__cplusplus)
+#pragma warning(push)
+#pragma warning(disable:4190)
 
 // A single shader blob and a description of its resources.
 typedef struct Fsr2ShaderBlobDX12 {
@@ -60,6 +62,7 @@ typedef enum Fs2ShaderPermutationOptionsDX12 {
 // Get a DX12 shader blob for the specified pass and permutation index.
 Fsr2ShaderBlobDX12 fsr2GetPermutationBlobByIndex(FfxFsr2Pass passId, uint32_t permutationOptions);
 
+#pragma warning(pop)
 #if defined(__cplusplus)
 }
 #endif // #if defined(__cplusplus)
